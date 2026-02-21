@@ -4,6 +4,11 @@ const { analyzeCase } = require('../services/aiService');
 
 exports.createCase = async (req, res) => {
   try {
+    const { patientName, age, gender, symptoms, temperature, bloodPressure, heartRate, history } = req.body;
+
+    console.log('[CreateCase] Received body:', req.body);
+    console.log('[CreateCase] Received files:', req.files?.length || 0);
+
     const attachments = req.files ? req.files.map(file => ({
       filename: file.filename,
       path: `uploads/${file.filename}`,
@@ -11,10 +16,23 @@ exports.createCase = async (req, res) => {
     })) : [];
 
     // Call AI to get immediate preliminary analysis
-    const aiAnalysis = await analyzeCase({ ...req.body, attachments });
-    
+    const aiAnalysis = await analyzeCase({
+      patientName, age, gender, symptoms,
+      temperature, bloodPressure, heartRate, history,
+      attachments
+    });
+
+    console.log('[CreateCase] AI Analysis result:', aiAnalysis);
+
     const newCase = new Case({
-      ...req.body,
+      patientName,
+      age: age ? Number(age) : undefined,
+      gender,
+      symptoms,
+      temperature: temperature ? Number(temperature) : undefined,
+      bloodPressure,
+      heartRate: heartRate ? Number(heartRate) : undefined,
+      history,
       attachments,
       aiAnalysis,
       createdBy: req.user._id
@@ -30,6 +48,7 @@ exports.createCase = async (req, res) => {
     
     res.status(201).json(populatedCase);
   } catch (err) {
+    console.error('[CreateCase] ERROR:', err);
     res.status(500).json({ message: err.message });
   }
 };

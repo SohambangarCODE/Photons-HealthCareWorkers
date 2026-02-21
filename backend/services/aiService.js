@@ -34,20 +34,24 @@ exports.analyzeCase = async (caseData) => {
     }
     No markdown formatting like \`\`\`json, just the pure JSON string.
     `;
-    contentParts.push(promptText);
+    contentParts.push({ text: promptText });
 
     // 2. Add files as base64 inline data
     if (caseData.attachments && caseData.attachments.length > 0) {
       for (const file of caseData.attachments) {
          try {
            const filePath = path.join(__dirname, '..', file.path);
-           const fileBuffer = fs.readFileSync(filePath);
-           contentParts.push({
-             inlineData: {
-               data: fileBuffer.toString("base64"),
-               mimeType: file.mimetype
-             }
-           });
+           if (fs.existsSync(filePath)) {
+             const fileBuffer = fs.readFileSync(filePath);
+             contentParts.push({
+               inlineData: {
+                 data: fileBuffer.toString("base64"),
+                 mimeType: file.mimetype
+               }
+             });
+           } else {
+             console.warn("[AI] Attachment file not found:", filePath);
+           }
          } catch(e) {
            console.error("Error reading attachment for AI:", e);
          }
@@ -56,7 +60,7 @@ exports.analyzeCase = async (caseData) => {
 
     const response = await ai.models.generateContent({
       model: model,
-      contents: contentParts,
+      contents: [{ role: 'user', parts: contentParts }],
       config: {
         responseMimeType: "application/json",
       }
