@@ -10,6 +10,8 @@ const connectDB = require('./config/db');
 
 dotenv.config();
 
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Connect to Database
 connectDB();
 
