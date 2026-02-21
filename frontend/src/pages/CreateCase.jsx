@@ -123,7 +123,12 @@ export default function CreateCase() {
       const res = await createCase(submitData);
       navigate(`/cases/${res._id}`); // Redirect to case details
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to analyze and create case');
+      console.error("[CreateCase] Full error object:", err);
+      console.error("[CreateCase] Error response:", err.response);
+      console.error("[CreateCase] Error message:", err.message);
+      const serverMsg = err.response?.data?.message;
+      const clientMsg = err.message;
+      setError(`Error: ${serverMsg || clientMsg || 'Failed to analyze and create case'}. Check console.`);
     } finally {
       setLoading(false);
     }

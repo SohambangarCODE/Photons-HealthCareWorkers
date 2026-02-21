@@ -61,13 +61,16 @@ exports.analyzeCase = async (caseData) => {
     const response = await ai.models.generateContent({
       model: model,
       contents: [{ role: 'user', parts: contentParts }],
-      config: {
-        responseMimeType: "application/json",
-      }
     });
 
-    const respText = response.text;
+    let respText = response.text;
     console.log("[AI Response]:", respText);
+    
+    // Strip markdown code fences if the model wraps JSON in ```json ... ```
+    if (respText && typeof respText === 'string') {
+      respText = respText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    }
+    
     const parsedResp = JSON.parse(respText);
     
     return {
@@ -77,12 +80,13 @@ exports.analyzeCase = async (caseData) => {
       confidence: parsedResp.confidence || 70
     };
   } catch (error) {
-    console.error("[AI Error]:", error);
-    // Fallback if AI fails
+    console.error("[AI Error] Type:", error.constructor?.name);
+    console.error("[AI Error] Message:", error.message?.substring(0, 200));
+    // Always return a valid fallback so case creation can still proceed
     return {
-      possibleDiseases: ['Analysis Error'],
+      possibleDiseases: ['Preliminary Assessment Pending'],
       riskLevel: 'Medium',
-      recommendation: 'AI service unavailable. Please rely on manual assessment and escalate if necessary.',
+      recommendation: 'AI analysis temporarily unavailable. Please use clinical judgment and escalate to a specialist if needed.',
       confidence: 0
     };
   }
