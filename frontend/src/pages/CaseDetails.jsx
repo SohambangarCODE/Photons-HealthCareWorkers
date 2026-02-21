@@ -34,6 +34,8 @@ export default function CaseDetails() {
   const [selectedSpecialist, setSelectedSpecialist] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     fetchCaseDetails();

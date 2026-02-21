@@ -9,6 +9,7 @@ import CaseDetails from './pages/CaseDetails';
 
 import SpecialistDashboard from './pages/SpecialistDashboard';
 import ReviewCase from './pages/ReviewCase';
+import DoctorConsultation from './pages/DoctorConsultation';
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto relative">
+        <main className="flex-1 overflow-y-auto relative bg-slate-50">
           <Routes>
             {/* Worker Routes */}
             <Route path="/" element={<WorkerDashboard />} />
@@ -24,6 +25,7 @@ function App() {
             <Route path="/worker/create-case" element={<CreateCase />} />
             <Route path="/worker/cases" element={<MyCases />} />
             <Route path="/cases/:id" element={<CaseDetails />} />
+            <Route path="/consultation/:id" element={<DoctorConsultation />} />
 
             {/* Specialist Routes */}
             <Route path="/specialist/dashboard" element={<SpecialistDashboard />} />
