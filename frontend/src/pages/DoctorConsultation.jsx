@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Phone, Video, MessageSquare, Info, Star, Award, Search, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Send, Phone, Video, MessageSquare, Info, Star, Award, Search, MoreVertical, Mic, MicOff, VideoOff, PhoneOff, Maximize, Volume2, Settings } from 'lucide-react';
 
 export default function DoctorConsultation() {
   const { id } = useParams();
@@ -11,7 +11,12 @@ export default function DoctorConsultation() {
     { id: 2, sender: 'doctor', text: 'Please remain calm. Can you confirm if the patient is currently conscious and breathing normally?', time: 'Just now' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
+  const [callStatus, setCallStatus] = useState('idle'); // idle, connecting, active, ended
+  const [isMuted, setIsMuted] = useState(false);
+  const [isVideoOff, setIsVideoOff] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
   const messagesEndRef = useRef(null);
+  const timerRef = useRef(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -45,6 +50,38 @@ export default function DoctorConsultation() {
       }]);
     }, 2000);
   };
+
+  const startCall = () => {
+    setCallStatus('connecting');
+    setTimeout(() => {
+      setCallStatus('active');
+      setCallDuration(0);
+      timerRef.current = setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }, 2000);
+  };
+
+  const endCall = () => {
+    setCallStatus('ended');
+    clearInterval(timerRef.current);
+    setTimeout(() => {
+      setCallStatus('idle');
+      setActiveTab('chat');
+    }, 2000);
+  };
+
+  const formatDuration = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
 
   return (
     <div className="h-full flex bg-slate-50 relative overflow-hidden">
@@ -167,19 +204,153 @@ export default function DoctorConsultation() {
                  </form>
               </div>
            </>
-        ) : (
-           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
-              <div className="bg-white p-6 rounded-full shadow-sm mb-4 border border-slate-100">
-                 {activeTab === 'call' ? <Phone size={48} className="text-indigo-200" /> : <Video size={48} className="text-indigo-200" />}
+        ) : activeTab === 'call' ? (
+          <div className="flex-1 flex flex-col bg-slate-900 relative">
+            {/* Header overlay for Call */}
+            <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20">
+              <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <p className="text-white text-xs font-bold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  {callStatus === 'connecting' ? 'CONNECTING...' : `SECURE CALL - ${formatDuration(callDuration)}`}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-slate-700 mb-2">
-                 {activeTab === 'call' ? 'Voice Call Unavailable' : 'Video Consultancy Unavailable'}
-              </h3>
-              <p className="text-sm text-slate-500 max-w-sm text-center">This feature is currently disabled in the demo environment. Please use the live chat to communicate with the specialist.</p>
-              <button onClick={() => setActiveTab('chat')} className="mt-6 text-indigo-600 font-bold text-sm hover:underline px-6 py-2 bg-indigo-50 rounded-full border border-indigo-100">
-                 Return to Live Chat
+              <button className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white backdrop-blur-md transition-colors">
+                <Settings size={20} />
               </button>
-           </div>
+            </div>
+
+            <div className="flex-1 flex flex-col items-center justify-center p-10">
+              <div className="relative mb-8">
+                <div className={`w-40 h-40 rounded-full bg-indigo-500/20 flex items-center justify-center relative ${callStatus === 'active' ? 'animate-[ping_3s_infinite]' : ''}`}>
+                  <div className="w-32 h-32 rounded-full bg-indigo-500 border-4 border-slate-900 shadow-2xl flex items-center justify-center overflow-hidden z-10">
+                    <img src={`https://ui-avatars.com/api/?name=Dr+Sarah+Jenkins&background=4338ca&color=fff&size=200`} alt="Doctor" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+                {callStatus === 'connecting' && (
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-600 text-[10px] font-bold text-white px-3 py-1 rounded-full border-2 border-slate-900">
+                    CALLING
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-white mb-2">Dr. Sarah Jenkins</h2>
+                <p className="text-indigo-300 font-medium mb-1">Senior Specialist & Cardiologist</p>
+                {callStatus === 'ended' && <p className="text-red-400 font-bold mt-4">Call Ended</p>}
+              </div>
+            </div>
+
+            {/* Call Controls */}
+            <div className="p-10 flex items-center justify-center gap-6 z-20 bg-gradient-to-t from-black/40 to-transparent">
+              {callStatus === 'idle' ? (
+                <button 
+                  onClick={startCall}
+                  className="w-16 h-16 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"
+                >
+                  <Phone size={28} />
+                </button>
+              ) : (
+                <>
+                  <button 
+                    onClick={() => setIsMuted(!isMuted)}
+                    className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-white text-slate-900' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                  >
+                    {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                  </button>
+                  <button 
+                    onClick={endCall}
+                    className="w-20 h-20 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-105 active:scale-95 border-4 border-white/20"
+                  >
+                    <PhoneOff size={32} />
+                  </button>
+                  <button className="w-14 h-14 bg-white/10 text-white hover:bg-white/20 rounded-full flex items-center justify-center transition-all">
+                    <Volume2 size={24} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+            {/* Video Main View */}
+            <div className="absolute inset-0 z-0">
+               <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                  {callStatus === 'active' && !isVideoOff ? (
+                    <div className="relative w-full h-full">
+                       <img src="https://images.unsplash.com/photo-1559839734-2b71f1536783?auto=format&fit=crop&q=80&w=2000" alt="Doctor Video" className="w-full h-full object-cover opacity-80" />
+                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40"></div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-32 h-32 rounded-full bg-slate-800 flex items-center justify-center border-2 border-slate-700">
+                        <VideoOff size={48} className="text-slate-600" />
+                      </div>
+                      <p className="text-slate-500 font-medium">Doctor's camera is off</p>
+                    </div>
+                  )}
+               </div>
+            </div>
+
+            {/* Local Preview */}
+            <div className="absolute top-6 right-6 w-48 h-32 bg-slate-800 rounded-xl border-2 border-white/10 shadow-2xl overflow-hidden z-20">
+               <div className="w-full h-full bg-indigo-900/40 flex items-center justify-center">
+                  <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Local Preview</span>
+               </div>
+            </div>
+
+            {/* Top Overlay */}
+            <div className="absolute top-6 left-6 z-20">
+              <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                <p className="text-white text-xs font-bold flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${callStatus === 'active' ? 'bg-red-500 animate-pulse' : 'bg-slate-500'}`}></span>
+                  {callStatus === 'active' ? `LIVE - ${formatDuration(callDuration)}` : 'READY TO CONNECT'}
+                </p>
+              </div>
+            </div>
+
+            {/* Bottom Overlay - Doctor Info */}
+            <div className="absolute bottom-32 left-8 z-20">
+               <h3 className="text-2xl font-bold text-white drop-shadow-lg">Dr. Sarah Jenkins</h3>
+               <p className="text-indigo-300 font-medium drop-shadow-md">Onboarding Consultation • HD</p>
+            </div>
+
+            {/* Video Controls */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center justify-center gap-6 z-30">
+               {callStatus === 'idle' ? (
+                 <button 
+                   onClick={startCall}
+                   className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center gap-3 shadow-2xl transition-all font-bold group"
+                 >
+                   <Video size={20} className="group-hover:scale-110 transition-transform" />
+                   Start Consultation
+                 </button>
+               ) : (
+                 <>
+                   <button 
+                     onClick={() => setIsMuted(!isMuted)}
+                     className={`w-14 h-14 rounded-full flex items-center justify-center transition-all backdrop-blur-md ${isMuted ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                   >
+                     {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+                   </button>
+                   <button 
+                     onClick={() => setIsVideoOff(!isVideoOff)}
+                     className={`w-14 h-14 rounded-full flex items-center justify-center transition-all backdrop-blur-md ${isVideoOff ? 'bg-red-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
+                   >
+                     {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
+                   </button>
+                   <button 
+                     onClick={endCall}
+                     className="w-16 h-16 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-2xl transition-all hover:scale-105 active:scale-95"
+                   >
+                     <PhoneOff size={28} />
+                   </button>
+                   <button className="w-14 h-14 bg-white/10 text-white hover:bg-white/20 rounded-full flex items-center justify-center transition-all backdrop-blur-md">
+                     <Maximize size={24} />
+                   </button>
+                 </>
+               )}
+            </div>
+          </div>
         )}
       </div>
     </div>
